@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema(
     statu: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
     isBloked: { type: Boolean, default: false },
+
+    car:{type : mongoose.Schema.Types.ObjectId ,ref:"Car"},
+    cars:[{type : mongoose.Schema.Types.ObjectId ,ref:"Car"}],
+    notification:[{type : mongoose.Schema.Types.ObjectId, ref:"Notification"}]
   },
   { timestamps: true }
 );

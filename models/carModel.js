@@ -11,6 +11,8 @@ const carSchema = new mongoose.Schema({
   color: {type :String , default:"#0000"},
   model: String,
   year: Number,
+  owner: {type : mongoose.Schema.Types.ObjectId ,ref: "User"}, //One 
+  //owners: [{type : mongoose.Schema.Types.ObjectId ,ref: "User"}] //Many 
 }, {
   timestamps: true // Ajoute automatiquement createdAt et updatedAt
 });

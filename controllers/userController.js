@@ -78,7 +78,7 @@ module.exports.getUserById = async (req, res) => {
     //const id = req.body
     const id = req.params.id;
     //const id = req.query
-    const User = await userModel.findById(id);
+    const User = await userModel.findById(id).populate("cars");
 
     res.status(200).json({ User });
   } catch (error) {

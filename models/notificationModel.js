@@ -95,3 +95,5 @@ notificationSchema.statics.getReadNotifications = function(recipientId, limit = 
 
 const Notification = mongoose.model("Notification", notificationSchema);
 module.exports = Notification;
+
+

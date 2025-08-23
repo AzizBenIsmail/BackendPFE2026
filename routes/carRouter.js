@@ -8,13 +8,14 @@ const {
   updateCar,
   deleteCar,
   deleteAllCars,
-  getCarStats
+  getCarStats,
+  addCarWithOwner
 } = require('../controllers/carController');
 
 // Routes CRUD pour les voitures
 
 // CREATE - Créer une nouvelle voiture
-router.post('/', createCar);
+router.post('/addCarWithOwner', addCarWithOwner);
 
 // READ - Récupérer toutes les voitures
 router.get('/', getAllCars);

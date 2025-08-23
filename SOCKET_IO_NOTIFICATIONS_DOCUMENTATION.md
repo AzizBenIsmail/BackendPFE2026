@@ -523,3 +523,5 @@ Pour toute question ou problème :
 2. Utiliser la page de test
 3. Consulter la documentation Socket.IO officielle
 4. Vérifier la configuration réseau
+
+

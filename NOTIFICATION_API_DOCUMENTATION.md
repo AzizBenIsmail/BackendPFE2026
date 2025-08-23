@@ -302,3 +302,5 @@ L'API utilise une architecture en couches :
 3. **Notifications d'alerte** - Avertissements et erreurs
 4. **Notifications de maintenance** - Informations de maintenance
 5. **Notifications personnalisées** - Messages spécifiques aux utilisateurs
+
+
