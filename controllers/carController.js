@@ -1,28 +1,17 @@
-const Car = require('../models/carModel');
+const CarService = require('../service/carService');
 
 // CREATE - Créer une nouvelle voiture
-const createCar = async (req, res) => {
+module.exports.createCar = async (req, res) => {
   try {
     const { brand, matricule, color, model, year } = req.body;
     
-    // Vérifier si la voiture existe déjà avec ce matricule
-    const existingCar = await Car.findOne({ matricule });
-    if (existingCar) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Une voiture avec ce matricule existe déjà' 
-      });
-    }
-
-    const newCar = new Car({
+    const savedCar = await CarService.createCar({
       brand,
       matricule,
       color,
       model,
       year
     });
-
-    const savedCar = await newCar.save();
     
     res.status(201).json({
       success: true,
@@ -33,16 +22,16 @@ const createCar = async (req, res) => {
     console.error('Erreur lors de la création de la voiture:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la création de la voiture',
+      message: error.message || 'Erreur lors de la création de la voiture',
       error: error.message
     });
   }
 };
 
 // READ - Récupérer toutes les voitures
-const getAllCars = async (req, res) => {
+module.exports.getAllCars = async (req, res) => {
   try {
-    const cars = await Car.find().sort({ createdAt: -1 });
+    const cars = await CarService.getAllCars();
     
     res.status(200).json({
       success: true,
@@ -61,18 +50,11 @@ const getAllCars = async (req, res) => {
 };
 
 // READ - Récupérer une voiture par ID
-const getCarById = async (req, res) => {
+module.exports.getCarById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const car = await Car.findById(id);
-    
-    if (!car) {
-      return res.status(404).json({
-        success: false,
-        message: 'Voiture non trouvée'
-      });
-    }
+    const car = await CarService.getCarById(id);
     
     res.status(200).json({
       success: true,
@@ -81,6 +63,12 @@ const getCarById = async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la récupération de la voiture:', error);
+    if (error.message === 'Voiture non trouvée') {
+      return res.status(404).json({
+        success: false,
+        message: 'Voiture non trouvée'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de la voiture',
@@ -90,17 +78,16 @@ const getCarById = async (req, res) => {
 };
 
 // READ - Rechercher des voitures par critères
-const searchCars = async (req, res) => {
+module.exports.searchCars = async (req, res) => {
   try {
     const { brand, model, year, color } = req.query;
-    const filter = {};
     
-    if (brand) filter.brand = { $regex: brand, $options: 'i' };
-    if (model) filter.model = { $regex: model, $options: 'i' };
-    if (year) filter.year = year;
-    if (color) filter.color = { $regex: color, $options: 'i' };
-    
-    const cars = await Car.find(filter).sort({ createdAt: -1 });
+    const cars = await CarService.searchCars({
+      brand,
+      model,
+      year,
+      color
+    });
     
     res.status(200).json({
       success: true,
@@ -119,36 +106,18 @@ const searchCars = async (req, res) => {
 };
 
 // UPDATE - Mettre à jour une voiture
-const updateCar = async (req, res) => {
+module.exports.updateCar = async (req, res) => {
   try {
     const { id } = req.params;
     const { brand, matricule, color, model, year } = req.body;
     
-    // Vérifier si la voiture existe
-    const existingCar = await Car.findById(id);
-    if (!existingCar) {
-      return res.status(404).json({
-        success: false,
-        message: 'Voiture non trouvée'
-      });
-    }
-    
-    // Si le matricule est modifié, vérifier qu'il n'existe pas déjà
-    if (matricule && matricule !== existingCar.matricule) {
-      const carWithSameMatricule = await Car.findOne({ matricule });
-      if (carWithSameMatricule) {
-        return res.status(400).json({
-          success: false,
-          message: 'Une voiture avec ce matricule existe déjà'
-        });
-      }
-    }
-    
-    const updatedCar = await Car.findByIdAndUpdate(
-      id,
-      { brand, matricule, color, model, year },
-      { new: true, runValidators: true }
-    );
+    const updatedCar = await CarService.updateCar(id, {
+      brand,
+      matricule,
+      color,
+      model,
+      year
+    });
     
     res.status(200).json({
       success: true,
@@ -157,6 +126,18 @@ const updateCar = async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour de la voiture:', error);
+    if (error.message === 'Voiture non trouvée') {
+      return res.status(404).json({
+        success: false,
+        message: 'Voiture non trouvée'
+      });
+    }
+    if (error.message === 'Une voiture avec ce matricule existe déjà') {
+      return res.status(400).json({
+        success: false,
+        message: 'Une voiture avec ce matricule existe déjà'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la voiture',
@@ -166,18 +147,11 @@ const updateCar = async (req, res) => {
 };
 
 // DELETE - Supprimer une voiture
-const deleteCar = async (req, res) => {
+module.exports.deleteCar = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const car = await Car.findByIdAndDelete(id);
-    
-    if (!car) {
-      return res.status(404).json({
-        success: false,
-        message: 'Voiture non trouvée'
-      });
-    }
+    const car = await CarService.deleteCar(id);
     
     res.status(200).json({
       success: true,
@@ -186,6 +160,12 @@ const deleteCar = async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la suppression de la voiture:', error);
+    if (error.message === 'Voiture non trouvée') {
+      return res.status(404).json({
+        success: false,
+        message: 'Voiture non trouvée'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la suppression de la voiture',
@@ -195,9 +175,9 @@ const deleteCar = async (req, res) => {
 };
 
 // DELETE - Supprimer toutes les voitures
-const deleteAllCars = async (req, res) => {
+module.exports.deleteAllCars = async (req, res) => {
   try {
-    const result = await Car.deleteMany({});
+    const result = await CarService.deleteAllCars();
     
     res.status(200).json({
       success: true,
@@ -214,12 +194,22 @@ const deleteAllCars = async (req, res) => {
   }
 };
 
-module.exports = {
-  createCar,
-  getAllCars,
-  getCarById,
-  searchCars,
-  updateCar,
-  deleteCar,
-  deleteAllCars
+// GET - Statistiques des voitures
+module.exports.getCarStats = async (req, res) => {
+  try {
+    const stats = await CarService.getCarStats();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Statistiques récupérées avec succès',
+      data: stats
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des statistiques:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques',
+      error: error.message
+    });
+  }
 };

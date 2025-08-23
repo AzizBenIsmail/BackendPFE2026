@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble
 
-Cette API permet de gérer un système de voitures avec toutes les opérations CRUD (Create, Read, Update, Delete).
+Cette API permet de gérer un système de voitures avec toutes les opérations CRUD (Create, Read, Update, Delete) et utilise une architecture en couches (Service + Controller).
 
 ## Modèle de données
 
@@ -75,7 +75,30 @@ Cette API permet de gérer un système de voitures avec toutes les opérations C
 }
 ```
 
-### 3. Récupérer une voiture par ID
+### 3. Statistiques des voitures
+- **URL:** `GET /api/cars/stats`
+- **Description:** Récupère les statistiques des voitures (total, par marque, par année)
+- **Réponse:**
+```json
+{
+  "success": true,
+  "message": "Statistiques récupérées avec succès",
+  "data": {
+    "totalCars": 5,
+    "carsByBrand": [
+      { "_id": "Renault", "count": 2 },
+      { "_id": "Peugeot", "count": 2 },
+      { "_id": "Citroën", "count": 1 }
+    ],
+    "carsByYear": [
+      { "_id": 2024, "count": 3 },
+      { "_id": 2023, "count": 2 }
+    ]
+  }
+}
+```
+
+### 4. Récupérer une voiture par ID
 - **URL:** `GET /api/cars/:id`
 - **Description:** Récupère une voiture spécifique par son ID
 - **Paramètres:** `id` - ID de la voiture
@@ -97,7 +120,7 @@ Cette API permet de gérer un système de voitures avec toutes les opérations C
 }
 ```
 
-### 4. Rechercher des voitures
+### 5. Rechercher des voitures
 - **URL:** `GET /api/cars/search`
 - **Description:** Recherche des voitures par critères
 - **Paramètres de requête:**
@@ -127,7 +150,7 @@ Cette API permet de gérer un système de voitures avec toutes les opérations C
 }
 ```
 
-### 5. Mettre à jour une voiture
+### 6. Mettre à jour une voiture
 - **URL:** `PUT /api/cars/:id`
 - **Description:** Met à jour une voiture existante
 - **Paramètres:** `id` - ID de la voiture
@@ -159,7 +182,7 @@ Cette API permet de gérer un système de voitures avec toutes les opérations C
 }
 ```
 
-### 6. Supprimer une voiture
+### 7. Supprimer une voiture
 - **URL:** `DELETE /api/cars/:id`
 - **Description:** Supprime une voiture spécifique
 - **Paramètres:** `id` - ID de la voiture
@@ -179,7 +202,7 @@ Cette API permet de gérer un système de voitures avec toutes les opérations C
 }
 ```
 
-### 7. Supprimer toutes les voitures
+### 8. Supprimer toutes les voitures
 - **URL:** `DELETE /api/cars`
 - **Description:** Supprime toutes les voitures (⚠️ Attention!)
 - **Réponse:**
@@ -190,6 +213,15 @@ Cette API permet de gérer un système de voitures avec toutes les opérations C
   "count": 5
 }
 ```
+
+## Architecture
+
+L'API utilise une architecture en couches :
+
+1. **Routes** (`routes/carRouter.js`) - Définition des endpoints
+2. **Controllers** (`controllers/carController.js`) - Gestion des requêtes HTTP
+3. **Services** (`service/carService.js`) - Logique métier
+4. **Modèles** (`models/carModel.js`) - Définition des données
 
 ## Codes d'erreur
 
@@ -221,6 +253,11 @@ curl -X POST http://localhost:3000/api/cars \
 ### Récupérer toutes les voitures
 ```bash
 curl -X GET http://localhost:3000/api/cars
+```
+
+### Récupérer les statistiques
+```bash
+curl -X GET http://localhost:3000/api/cars/stats
 ```
 
 ### Rechercher des voitures
