@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Notifications Socket.IO</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .notification {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .notification.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        .notification.success {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .notification.warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+        .notification.info {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #d32f2f;
+        }
+        .stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .connection-status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        .disconnected {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .notifications-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔔 Test Notifications Socket.IO</h1>
+    
+    <div class="connection-status" id="connectionStatus">
+        Déconnecté
+    </div>
+
+    <div class="container">
+        <!-- Panel de contrôle -->
+        <div class="panel">
+            <h2>🎮 Contrôle</h2>
+            
+            <div class="form-group">
+                <label for="userId">ID Utilisateur:</label>
+                <input type="text" id="userId" placeholder="Entrez votre ID utilisateur">
+            </div>
+
+            <button onclick="connect()">🔗 Se connecter</button>
+            <button onclick="disconnect()" class="danger">❌ Se déconnecter</button>
+
+            <hr>
+
+            <h3>📊 Statistiques</h3>
+            <div class="stats" id="stats">
+                Non connecté
+            </div>
+
+            <h3>🔍 Actions</h3>
+            <button onclick="getNotifications()">📋 Récupérer notifications</button>
+            <button onclick="markAllAsRead()">✅ Marquer tout comme lu</button>
+            <button onclick="getStats()">📈 Statistiques</button>
+        </div>
+
+        <!-- Panel des notifications -->
+        <div class="panel">
+            <h2>🔔 Notifications</h2>
+            
+            <div class="notifications-list" id="notificationsList">
+                <p>Aucune notification reçue</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel d'envoi de notifications (pour les tests) -->
+    <div class="panel" style="margin-top: 20px;">
+        <h2>📤 Envoyer une notification (Test)</h2>
+        
+        <div class="form-group">
+            <label for="recipientId">Destinataire ID:</label>
+            <input type="text" id="recipientId" placeholder="ID du destinataire">
+        </div>
+
+        <div class="form-group">
+            <label for="notificationTitle">Titre:</label>
+            <input type="text" id="notificationTitle" placeholder="Titre de la notification">
+        </div>
+
+        <div class="form-group">
+            <label for="notificationMessage">Message:</label>
+            <textarea id="notificationMessage" rows="3" placeholder="Message de la notification"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="notificationType">Type:</label>
+            <select id="notificationType">
+                <option value="info">Info</option>
+                <option value="success">Succès</option>
+                <option value="warning">Avertissement</option>
+                <option value="error">Erreur</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="notificationPriority">Priorité:</label>
+            <select id="notificationPriority">
+                <option value="low">Faible</option>
+                <option value="medium">Moyenne</option>
+                <option value="high">Élevée</option>
+                <option value="urgent">Urgente</option>
+            </select>
+        </div>
+
+        <button onclick="sendNotification()">📤 Envoyer notification</button>
+        <button onclick="sendSystemNotification()">🔧 Notification système</button>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentUserId = null;
+
+        // Fonction de connexion
+        function connect() {
+            const userId = document.getElementById('userId').value;
+            if (!userId) {
+                alert('Veuillez entrer un ID utilisateur');
+                return;
+            }
+
+            // Se connecter au serveur Socket.IO
+            socket = io();
+
+            // Événements de connexion
+            socket.on('connect', () => {
+                console.log('Connecté au serveur Socket.IO');
+                updateConnectionStatus(true);
+                
+                // S'authentifier
+                socket.emit('authenticate', { userId: userId });
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Déconnecté du serveur Socket.IO');
+                updateConnectionStatus(false);
+            });
+
+            // Événements d'authentification
+            socket.on('authenticated', (data) => {
+                console.log('Authentification réussie:', data);
+                currentUserId = userId;
+                addNotification('success', 'Authentification réussie', data.message);
+                getStats();
+            });
+
+            socket.on('authentication_error', (data) => {
+                console.error('Erreur d\'authentification:', data);
+                addNotification('error', 'Erreur d\'authentification', data.message);
+            });
+
+            // Événements de notifications
+            socket.on('new_notification', (data) => {
+                console.log('Nouvelle notification reçue:', data);
+                addNotification(data.notification.type, data.notification.title, data.notification.message);
+                getStats(); // Mettre à jour les statistiques
+            });
+
+            socket.on('unread_notifications', (data) => {
+                console.log('Notifications non lues:', data);
+                updateStats(data);
+            });
+
+            socket.on('notification_stats', (data) => {
+                console.log('Statistiques mises à jour:', data);
+                updateStats(data);
+            });
+
+            socket.on('notification_updated', (data) => {
+                console.log('Notification mise à jour:', data);
+                addNotification('info', 'Notification mise à jour', `${data.type}: ${data.notification.title}`);
+            });
+
+            socket.on('notifications_updated', (data) => {
+                console.log('Notifications mises à jour:', data);
+                addNotification('info', 'Notifications mises à jour', `${data.count} notification(s) ${data.type}`);
+                getStats();
+            });
+
+            socket.on('notification_deleted', (data) => {
+                console.log('Notification supprimée:', data);
+                addNotification('info', 'Notification supprimée', `ID: ${data.notificationId}`);
+                getStats();
+            });
+
+            socket.on('notifications_list', (data) => {
+                console.log('Liste des notifications:', data);
+                displayNotificationsList(data.notifications);
+            });
+
+            socket.on('search_results', (data) => {
+                console.log('Résultats de recherche:', data);
+                displayNotificationsList(data.notifications);
+            });
+
+            // Événements d'erreur
+            socket.on('error', (data) => {
+                console.error('Erreur Socket.IO:', data);
+                addNotification('error', 'Erreur', data.message);
+            });
+        }
+
+        // Fonction de déconnexion
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                currentUserId = null;
+                updateConnectionStatus(false);
+                addNotification('info', 'Déconnexion', 'Déconnecté du serveur');
+            }
+        }
+
+        // Mettre à jour le statut de connexion
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (connected) {
+                statusElement.textContent = '🟢 Connecté';
+                statusElement.className = 'connection-status connected';
+            } else {
+                statusElement.textContent = '🔴 Déconnecté';
+                statusElement.className = 'connection-status disconnected';
+            }
+        }
+
+        // Ajouter une notification à l'interface
+        function addNotification(type, title, message) {
+            const notificationsList = document.getElementById('notificationsList');
+            const notificationDiv = document.createElement('div');
+            notificationDiv.className = `notification ${type}`;
+            notificationDiv.innerHTML = `
+                <strong>${title}</strong><br>
+                ${message}<br>
+                <small>${new Date().toLocaleTimeString()}</small>
+            `;
+            notificationsList.insertBefore(notificationDiv, notificationsList.firstChild);
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats(stats) {
+            const statsElement = document.getElementById('stats');
+            if (stats.total !== undefined) {
+                statsElement.innerHTML = `
+                    <strong>Statistiques:</strong><br>
+                    Total: ${stats.total}<br>
+                    Non lues: ${stats.unread}<br>
+                    Lues: ${stats.read}<br>
+                    <small>Mise à jour: ${new Date().toLocaleTimeString()}</small>
+                `;
+            } else if (stats.count !== undefined) {
+                statsElement.innerHTML = `
+                    <strong>Notifications non lues:</strong> ${stats.count}<br>
+                    <small>Mise à jour: ${new Date().toLocaleTimeString()}</small>
+                `;
+            }
+        }
+
+        // Récupérer les notifications
+        function getNotifications() {
+            if (socket && currentUserId) {
+                socket.emit('get_notifications', { userId: currentUserId });
+            } else {
+                alert('Veuillez vous connecter d\'abord');
+            }
+        }
+
+        // Marquer toutes les notifications comme lues
+        function markAllAsRead() {
+            if (socket && currentUserId) {
+                socket.emit('mark_all_as_read', { userId: currentUserId });
+            } else {
+                alert('Veuillez vous connecter d\'abord');
+            }
+        }
+
+        // Récupérer les statistiques
+        function getStats() {
+            if (socket && currentUserId) {
+                // Les statistiques sont automatiquement envoyées lors de l'authentification
+                // et lors des mises à jour
+            }
+        }
+
+        // Afficher la liste des notifications
+        function displayNotificationsList(notifications) {
+            const notificationsList = document.getElementById('notificationsList');
+            if (notifications.length === 0) {
+                notificationsList.innerHTML = '<p>Aucune notification trouvée</p>';
+                return;
+            }
+
+            notificationsList.innerHTML = '';
+            notifications.forEach(notification => {
+                const notificationDiv = document.createElement('div');
+                notificationDiv.className = `notification ${notification.type}`;
+                notificationDiv.innerHTML = `
+                    <strong>${notification.title}</strong><br>
+                    ${notification.message}<br>
+                    <small>Type: ${notification.type} | Priorité: ${notification.priority} | ${new Date(notification.createdAt).toLocaleString()}</small>
+                `;
+                notificationsList.appendChild(notificationDiv);
+            });
+        }
+
+        // Envoyer une notification (test)
+        async function sendNotification() {
+            const recipientId = document.getElementById('recipientId').value;
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            const type = document.getElementById('notificationType').value;
+            const priority = document.getElementById('notificationPriority').value;
+
+            if (!recipientId || !title || !message) {
+                alert('Veuillez remplir tous les champs');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/socket-notifications/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        recipient: recipientId,
+                        title: title,
+                        message: message,
+                        type: type,
+                        priority: priority,
+                        sender: currentUserId
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addNotification('success', 'Notification envoyée', result.message);
+                } else {
+                    addNotification('error', 'Erreur', result.message);
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'envoi:', error);
+                addNotification('error', 'Erreur', 'Erreur lors de l\'envoi de la notification');
+            }
+        }
+
+        // Envoyer une notification système (test)
+        async function sendSystemNotification() {
+            const title = document.getElementById('notificationTitle').value;
+            const message = document.getElementById('notificationMessage').value;
+            const type = document.getElementById('notificationType').value;
+            const priority = document.getElementById('notificationPriority').value;
+
+            if (!title || !message) {
+                alert('Veuillez remplir le titre et le message');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/socket-notifications/system', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        message: message,
+                        type: type,
+                        priority: priority
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    addNotification('success', 'Notification système envoyée', result.message);
+                } else {
+                    addNotification('error', 'Erreur', result.message);
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'envoi:', error);
+                addNotification('error', 'Erreur', 'Erreur lors de l\'envoi de la notification système');
+            }
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page de test Socket.IO chargée');
+        });
+    </script>
+</body>
+</html>
