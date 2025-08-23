@@ -11,11 +11,27 @@ const userSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
     },
     password: { type: String, require: true, minlength: 6 },
+    // password: {
+    //   type: String,
+    //   required: true,
+    //   minlength: 12,
+    //   match: [
+    //     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",<.>/?\\|`~]).{12,}$/,
+    //     "Password must be at least 12 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.",
+    //   ],
+    // },
     role: { type: String, enum: ["client", "admin", "moderateur", "prof"] },
     image_User: { type: String, default: "client.png" },
     cv_User: { type: String },
     age: Number,
 
+    //client
+    //.
+    //.
+
+    //prof
+    //*
+    //*
     statu: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
     isBloked: { type: Boolean, default: false },
