@@ -272,9 +272,10 @@ module.exports.affectCarToUser = async (req, res) => {
     }
 
     await CarModel.findByIdAndUpdate(carID,{
-        $set: { owner : ownerID}
-        
+        $set: { owner : ownerID}        
+      //  $push: { owners : ownerID}        
     })
+
     await userModel.findByIdAndUpdate(ownerID,{
         //$set: { car : carID}
         $push : {cars : carID}
@@ -290,6 +291,70 @@ module.exports.affectCarToUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Erreur lors de la création de la voiture',
+      error: error.message
+    });
+  }
+};
+
+module.exports.desaffectCarToUser = async (req, res) => {
+  try {
+    const { carID,ownerID } = req.body;
+    
+    const user = await userModel.findById(ownerID)
+    if(!user){
+        throw new Error("user not found");        
+    }
+
+    const car = await CarModel.findById(carID)
+    if(!car){
+        throw new Error("car not found");        
+    }
+
+    await CarModel.findByIdAndUpdate(carID,{
+        $set: { owner : ""}        
+      //  $push: { owners : ownerID}        
+    })
+
+    await userModel.findByIdAndUpdate(ownerID,{
+        //$set: { car : carID}
+        $pull : {cars : carID}
+    })
+
+    res.status(201).json({
+      success: true,
+      message: 'Voiture créée avec succès',
+      data: "affected"
+    });
+  } catch (error) {
+    console.error('Erreur lors de la création de la voiture:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Erreur lors de la création de la voiture',
+      error: error.message
+    });
+  }
+};
+
+module.exports.deleteCar = async (req, res) => {
+  try {
+    const { id } = req.params;    
+    const car = await CarModel.findByIdAndDelete(id);
+    
+    /*await userModel.findByIdAndUpdate(car.owner,{
+        $pull : {cars : id}
+    })*/
+
+    await userModel.updateMany({},{$pull: {cars : id}})    
+    res.status(200).json({
+      success: true,
+      message: 'Voiture supprimée avec succès',
+      data: car
+    });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la voiture:', error);   
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression de la voiture',
       error: error.message
     });
   }
