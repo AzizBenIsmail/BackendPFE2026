@@ -11,10 +11,11 @@ module.exports.esmFocntion = async (req, res) => {
 
 module.exports.getAllUsers = async (req, res) => {
   try {
-    //logique
+    //logique    
+    const user = req.user
     const UserList = await userModel.find();
 
-    res.status(200).json({ UserList });
+    res.status(200).json({user ,UserList });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -269,6 +270,43 @@ module.exports.updateRoleByAdminToModerateur = async (req, res) => {
     });
     //const client = new userModel(req.body)
     res.status(200).json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const jwt = require('jsonwebtoken')
+
+const maxAge = 1 * 60 * 60 // 1 Min
+
+const createToken = (id) =>{
+  return jwt.sign({id},"net 9antra secret",{expiresIn: maxAge})
+}
+
+module.exports.login = async (req, res) => {
+  try {
+    //logique
+    const {email , password} = req.body
+    const User = await userModel.login(email,password)
+
+    const token = createToken(User._id)
+    console.log(token)
+
+    res.cookie('jwt_Token',token,{httpOnly: false,maxAge: maxAge * 1000})
+
+    res.status(200).json({ message:'User successfully authenticated',user:User , token : token });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports.logout = async (req, res) => {
+  try {
+    //logique
+
+    res.cookie('jwt_Token','',{ httpOnly: false,maxAge: 1})
+
+    res.status(200).json({ message:'User successfully logged out' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

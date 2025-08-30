@@ -11,8 +11,11 @@ const {
   getCarStats,
   addCarWithOwner
 } = require('../controllers/carController');
+const {requireAuthUser} = require("../middlewares/authMiddlewares")
 
 // Routes CRUD pour les voitures
+
+router.use(requireAuthUser)
 
 // CREATE - Créer une nouvelle voiture
 router.post('/addCarWithOwner', addCarWithOwner);
